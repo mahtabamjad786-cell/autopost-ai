@@ -1,0 +1,30 @@
+version: '3.8'
+
+# Quick-start deployment. For real production, switch the backend's
+# DATABASE_URL to a managed Postgres instance instead of the sqlite volume
+# below, and put both services behind HTTPS (e.g. via a reverse proxy/Caddy).
+
+services:
+  backend:
+    build: ./backend
+    ports:
+      - '4000:4000'
+    env_file:
+      - ./backend/.env
+    volumes:
+      - backend_data:/app/prisma
+      - backend_uploads:/app/uploads
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        - VITE_API_URL=http://localhost:4000/api
+    ports:
+      - '5173:5173'
+    depends_on:
+      - backend
+
+volumes:
+  backend_data:
+  backend_uploads:

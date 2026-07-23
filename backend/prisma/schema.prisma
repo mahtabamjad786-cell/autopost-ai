@@ -1,0 +1,143 @@
+// Prisma schema for AutoPost AI
+// Dev: SQLite (file-based, zero setup). For production, switch provider to
+// "postgresql" and set DATABASE_URL to a Postgres connection string —
+// no other code changes needed.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum AccountStatus {
+  PENDING   // signed up, awaiting payment activation
+  ACTIVE
+  SUSPENDED
+}
+
+enum PostStatus {
+  PENDING
+  PUBLISHED
+  FAILED
+}
+
+enum TextProvider {
+  OPENAI
+  CLAUDE
+  GEMINI
+  GROK
+}
+
+enum ImageProvider {
+  OPENAI_IMAGES
+  IMAGEN
+  FLUX
+  STABILITY
+}
+
+model Plan {
+  id             String  @id @default(cuid())
+  name           String  @unique   // "Basic" | "Premium" | custom
+  maxPages       Int     @default(1)
+  maxPostsPerDay Int     @default(1)
+  aiTier         String  @default("STANDARD") // STANDARD | PREMIUM
+  priceMonthly   Float   @default(0)
+  users          User[]
+}
+
+model User {
+  id            String        @id @default(cuid())
+  email         String        @unique
+  passwordHash  String
+  name          String
+  role          Role          @default(USER)
+  status        AccountStatus @default(PENDING)
+  planId        String?
+  plan          Plan?         @relation(fields: [planId], references: [id])
+  facebookPages FacebookPage[]
+  automation    Automation?
+  posts         Post[]
+  logs          ActivityLog[]
+  createdAt     DateTime      @default(now())
+}
+
+model FacebookPage {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pageId       String   @unique // Facebook Page ID
+  pageName     String
+  accessToken  String   // long-lived page access token
+  connectedAt  DateTime @default(now())
+  posts        Post[]
+}
+
+model Automation {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topic              String
+  language           String   @default("English") // "English" | "Urdu"
+  tone               String   @default("Professional")
+  postingTimes       String   // JSON array e.g. ["09:00","14:00","20:00"]
+  activePageIds      String   // JSON array of FacebookPage ids to publish to
+  isActive           Boolean  @default(false)
+  lastSubtopicIndex  Int      @default(-1)
+  subtopicHistory    String   @default("[]") // JSON array of used subtopics
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model Post {
+  id             String     @id @default(cuid())
+  userId         String
+  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  facebookPageId String
+  facebookPage   FacebookPage @relation(fields: [facebookPageId], references: [id], onDelete: Cascade)
+  subtopic       String
+  content        String
+  hashtags       String     // JSON array
+  imageUrl       String?
+  scheduledFor   DateTime
+  status         PostStatus @default(PENDING)
+  fbPostId       String?
+  errorMessage   String?
+  createdAt      DateTime   @default(now())
+  publishedAt    DateTime?
+}
+
+model AdminSettings {
+  id                  Int           @id @default(1)
+  textProvider        TextProvider  @default(OPENAI)
+  imageProvider       ImageProvider @default(OPENAI_IMAGES)
+  maxDailyPostsGlobal Int           @default(3)
+  imageOrientation    String        @default("portrait") // portrait | landscape | square
+  watermarkEnabled    Boolean       @default(false)
+  hashtagCount        Int           @default(6)
+  aiCreativityLevel   Float         @default(0.7) // 0-1, maps to temperature
+  retryFailedPosts    Boolean       @default(true)
+}
+
+model ApiKey {
+  id       String  @id @default(cuid())
+  provider String  @unique // matches TextProvider/ImageProvider enum value
+  keyValue String
+  isActive Boolean @default(true)
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action    String
+  detail    String?
+  createdAt DateTime @default(now())
+}
