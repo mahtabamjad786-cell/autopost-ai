@@ -12,37 +12,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Role {
-  USER
-  ADMIN
-}
-
-enum AccountStatus {
-  PENDING   // signed up, awaiting payment activation
-  ACTIVE
-  SUSPENDED
-}
-
-enum PostStatus {
-  PENDING
-  PUBLISHED
-  FAILED
-}
-
-enum TextProvider {
-  OPENAI
-  CLAUDE
-  GEMINI
-  GROK
-}
-
-enum ImageProvider {
-  OPENAI_IMAGES
-  IMAGEN
-  FLUX
-  STABILITY
-}
-
 model Plan {
   id             String  @id @default(cuid())
   name           String  @unique   // "Basic" | "Premium" | custom
@@ -58,8 +27,8 @@ model User {
   email         String        @unique
   passwordHash  String
   name          String
-  role          Role          @default(USER)
-  status        AccountStatus @default(PENDING)
+  role          String        @default("USER")
+  status        String        @default("PENDING")
   planId        String?
   plan          Plan?         @relation(fields: [planId], references: [id])
   facebookPages FacebookPage[]
@@ -107,7 +76,7 @@ model Post {
   hashtags       String     // JSON array
   imageUrl       String?
   scheduledFor   DateTime
-  status         PostStatus @default(PENDING)
+  status         String     @default("PENDING")
   fbPostId       String?
   errorMessage   String?
   createdAt      DateTime   @default(now())
@@ -116,8 +85,8 @@ model Post {
 
 model AdminSettings {
   id                  Int           @id @default(1)
-  textProvider        TextProvider  @default(OPENAI)
-  imageProvider       ImageProvider @default(OPENAI_IMAGES)
+  textProvider        String        @default("OPENAI")
+  imageProvider       String        @default("OPENAI_IMAGES")
   maxDailyPostsGlobal Int           @default(3)
   imageOrientation    String        @default("portrait") // portrait | landscape | square
   watermarkEnabled    Boolean       @default(false)
