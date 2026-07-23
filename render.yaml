@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: autopost-ai-backend
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        value: file:./dev.db
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: FRONTEND_URL
+        value: "*"
+      - key: FB_APP_ID
+        value: ""
+      - key: FB_APP_SECRET
+        value: ""
+      - key: FB_REDIRECT_URI
+        value: ""
+      - key: FB_GRAPH_VERSION
+        value: v20.0
